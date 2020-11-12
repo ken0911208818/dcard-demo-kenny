@@ -1,0 +1,61 @@
+version: '3'
+services:
+  postgres:
+    container_name: 'postgres-dcard'
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: root
+    volumes:
+      - ./docker-pg-init-scripts:/docker-entrypoint-initdb.d
+# if you want to save pg data
+#       - pgdata:/var/lib/postgresql/data/
+    ports:
+    - "5435:5432"
+  postgres-client:
+    container_name: 'postgres-dcard-client'
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "dcard@example.com"
+      PGADMIN_DEFAULT_PASSWORD: "dcard"
+    ports:
+    - "16543:80"
+    depends_on:
+      - postgres
+  redis:
+    container_name: 'redis-dcard'
+# command 是指當這個容器啟動後執行的command line
+    image: redis
+    command: redis-server --requirepass root
+    restart: always
+# if you want to save redis data
+#    volumes:
+#      - ./redis-data:/data
+    ports:
+    - "6480:6379"
+  redis-client:
+    container_name: 'redis-dcard-client'
+    image: erikdubbelboer/phpredisadmin
+    environment:
+      REDIS_1_HOST: "redis"
+      REDIS_1_PORT: "6379"
+      REDIS_1_AUTH: "root"
+      ADMIN_USER: "root"
+      ADMIN_PASS: "root"
+    restart: always
+    depends_on:
+      - redis
+    ports:
+    - "8081:80"
+  backendDcard:
+    image: 'dcard-demo-kenny'
+    container_name: 'dcard-demo-kenny'
+    build: ./
+    environment:
+      DB_HOST: postgres
+      REDIS_ENDPOINT: redis:6379
+    restart: always
+    ports:
+    - "1234:1234"
+    depends_on:
+      - postgres
+      - redis
