@@ -44,7 +44,7 @@ func init() {
 	tokenLifeTime := time.Duration(config.GetInt("TOKEN_LIFETIME")) * time.Minute
 
 	auth.Init(secretKey, tokenLifeTime)
-	middleware.Init(db,redisClient)
+	middleware.Init(db, redisClient)
 	vaildate.Init(config.GetStr("LOCALE"))
 }
 func main() {
@@ -52,11 +52,18 @@ func main() {
 	router.Run(":1234")
 }
 
-func setupRouter() *gin.Engine{
+func setupRouter() *gin.Engine {
 	r := gin.Default()
 	v1 := r.Group("/v1")
 	{
-		v1.POST("/users/",middleware.Plain(), handler.UserCreate)
+		authRouter := v1.Group("/auth/")
+		{
+			authRouter.POST("/", middleware.Plain(), handler.Login)
+		}
+		userRouter := v1.Group("/users/")
+		{
+			userRouter.POST("/", middleware.Plain(), handler.UserCreate)
+		}
 	}
 	return r
 }
