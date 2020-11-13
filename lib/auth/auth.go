@@ -29,6 +29,6 @@ func Sign(userId string) (string, error) {
 			ExpiresAt: time.Now().Add(tokenLifeTime).Unix(),
 		},
 	}
-	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return tokenClaims.SignedString([]byte("secret"))
 }
