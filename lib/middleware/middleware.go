@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	db *gorm.DB
+	db          *gorm.DB
 	redisClient *redis.Client
 )
 
-func Init(database *gorm.DB, client *redis.Client)  {
+func Init(database *gorm.DB, client *redis.Client) {
 	db = database
 	redisClient = client
 }
@@ -47,4 +47,9 @@ func Plain() gin.HandlerFunc {
 func sendResponse(c *gin.Context, statusCode int, data interface{}) {
 	c.JSON(statusCode, data)
 	c.Abort()
+}
+
+func SendErrorResponse(c *gin.Context, StatusCode int, err error) {
+	c.Set(constant.StatusCode, StatusCode)
+	c.Set(constant.Error, err)
 }
