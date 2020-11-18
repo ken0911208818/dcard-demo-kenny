@@ -9,7 +9,7 @@ import (
 	"github.com/ken0911208818/dcard-demo-kenny/handler"
 	"github.com/ken0911208818/dcard-demo-kenny/lib/auth"
 	"github.com/ken0911208818/dcard-demo-kenny/lib/config"
-	"github.com/ken0911208818/dcard-demo-kenny/lib/middleware"
+	middleware "github.com/ken0911208818/dcard-demo-kenny/lib/middleware"
 	"github.com/ken0911208818/dcard-demo-kenny/lib/vaildate"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -28,6 +28,11 @@ func init() {
 	if err != nil {
 		log.Panic("DB connection initialization failed:", err)
 	}
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	//redis
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     config.GetStr("REDIS_ENDPOINT"),
@@ -40,9 +45,9 @@ func init() {
 		log.Panic("Redis connection initialization failed:", err)
 	}
 	// jwt setting
+
 	secretKey := config.GetBytes("SECRET_KEY")
 	tokenLifeTime := time.Duration(config.GetInt("TOKEN_LIFETIME")) * time.Minute
-
 	auth.Init(secretKey, tokenLifeTime)
 	middleware.Init(db, redisClient)
 	vaildate.Init(config.GetStr("LOCALE"))
@@ -63,6 +68,13 @@ func setupRouter() *gin.Engine {
 		userRouter := v1.Group("/users/")
 		{
 			userRouter.POST("/", middleware.Plain(), handler.UserCreate)
+		}
+
+		pairRouter := v1.Group("/pairs/")
+		pairRouter.Use(middleware.Auth(), middleware.IPLimitIntercept())
+		{
+			pairRouter.POST("/", middleware.Tx(), handler.ParisCreate)
+			pairRouter.GET("/", middleware.Tx(), handler.PairGetOne)
 		}
 	}
 	return r
